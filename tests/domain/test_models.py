@@ -108,3 +108,55 @@ def test_review_event_creation():
     assert review_event.new_interval_seconds == 172800
     assert review_event.previous_due_at == previous_due_at
     assert review_event.new_due_at == new_due_at
+
+
+def test_deck_can_exist_without_id():
+    created_at = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
+
+    deck = Deck(
+        id=None,
+        name="Chemistry",
+        created_at=created_at,
+        updated_at=created_at,
+    )
+
+    assert deck.id is None
+
+
+def test_card_can_exist_without_id():
+    created_at = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
+
+    card = Card(
+        id=None,
+        deck_id=1,
+        front="What is H2O?",
+        back="Water",
+        created_at=created_at,
+        updated_at=created_at,
+    )
+
+    assert card.id is None
+    assert card.deck_id == 1
+
+
+def test_review_event_can_exist_without_id():
+    reviewed_at = datetime(2026, 10, 7, 12, 0, tzinfo=UTC)
+    previous_due_at = datetime(2026, 10, 7, 11, 0, tzinfo=UTC)
+    new_due_at = datetime(2026, 10, 9, 12, 0, tzinfo=UTC)
+
+    review_event = ReviewEvent(
+        id=None,
+        card_id=1,
+        reviewed_at=reviewed_at,
+        rating=Rating.GOOD,
+        response_time_ms=2500,
+        previous_state=CardState.LEARNING,
+        new_state=CardState.REVIEW,
+        previous_interval_seconds=0,
+        new_interval_seconds=172800,
+        previous_due_at=previous_due_at,
+        new_due_at=new_due_at,
+    )
+
+    assert review_event.id is None
+    assert review_event.card_id == 1
