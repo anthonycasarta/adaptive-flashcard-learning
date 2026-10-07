@@ -1,0 +1,40 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Python build artifacts
+build/
+dist/
+*.egg-info/
+
+# Development data
+dev_data/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.*
+
+# Type checking and linting caches
+.mypy_cache/
+.ruff_cache/
+
+# IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
