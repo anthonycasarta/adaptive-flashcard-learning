@@ -17,7 +17,7 @@ class Rating(Enum):
 
 @dataclass
 class Deck:
-    id: int
+    id: int | None
     name: str
     created_at: datetime
     updated_at: datetime
@@ -25,7 +25,7 @@ class Deck:
 
 @dataclass
 class Card:
-    id: int
+    id: int | None
     deck_id: int
     front: str
     back: str
@@ -45,7 +45,7 @@ class CardSchedule:
 
 @dataclass
 class ReviewEvent:
-    id: int
+    id: int | None
     card_id: int
     reviewed_at: datetime
     rating: Rating
