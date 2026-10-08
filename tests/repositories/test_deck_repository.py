@@ -1,5 +1,7 @@
 from datetime import UTC, datetime
 
+import pytest
+
 from flashcards.database.connection import create_connection, initialize_database
 from flashcards.domain.models import Deck
 from flashcards.repositories.deck_repository import DeckRepository
@@ -164,5 +166,69 @@ def test_get_all_returns_empty_list_when_no_decks_exist(tmp_path):
     decks = repository.get_all()
 
     assert decks == []
+
+    connection.close()
+
+
+def test_update_deck(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = DeckRepository(connection)
+
+    created_at = datetime.now(UTC)
+
+    created_deck = repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=created_at,
+            updated_at=created_at,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    updated_at = datetime.now(UTC)
+
+    updated_deck = Deck(
+        id=created_deck.id,
+        name="Computer Science Fundamentals",
+        created_at=created_deck.created_at,
+        updated_at=updated_at,
+    )
+
+    repository.update(updated_deck)
+
+    found_deck = repository.get_by_id(created_deck.id)
+
+    assert found_deck is not None
+    assert found_deck.id == created_deck.id
+    assert found_deck.name == "Computer Science Fundamentals"
+    assert found_deck.created_at == created_at
+    assert found_deck.updated_at == updated_at
+
+    connection.close()
+
+
+def test_update_deck_without_id_raises_value_error(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = DeckRepository(connection)
+
+    now = datetime.now(UTC)
+
+    deck = Deck(
+        id=None,
+        name="Computer Science",
+        created_at=now,
+        updated_at=now,
+    )
+
+    with pytest.raises(ValueError, match="Cannot update a deck without an ID"):
+        repository.update(deck)
 
     connection.close()

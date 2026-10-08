@@ -68,3 +68,22 @@ class DeckRepository:
             )
             for row in rows
         ]
+
+    def update(self, deck: Deck) -> None:
+        if deck.id is None:
+            raise ValueError("Cannot update a deck without an ID")
+
+        self._connection.execute(
+            """
+            UPDATE decks
+            SET name = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                deck.name,
+                deck.updated_at.isoformat(),
+                deck.id,
+            ),
+        )
+
+        self._connection.commit()
