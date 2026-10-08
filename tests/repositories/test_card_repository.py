@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -544,5 +544,69 @@ def test_get_schedule_returns_none_when_schedule_does_not_exist(tmp_path):
     found_schedule = card_repository.get_schedule(created_card.id)
 
     assert found_schedule is None
+
+    connection.close()
+
+
+def test_update_schedule(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    created_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=created_deck.id,
+            front="What is a stack?",
+            back="A last-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_card.id is not None
+
+    initial_schedule = CardSchedule(
+        card_id=created_card.id,
+        state=CardState.LEARNING,
+        due_at=now,
+        interval_seconds=0,
+        review_count=0,
+        failure_count=0,
+    )
+
+    card_repository.create_schedule(initial_schedule)
+
+    updated_schedule = CardSchedule(
+        card_id=created_card.id,
+        state=CardState.REVIEW,
+        due_at=now + timedelta(days=2),
+        interval_seconds=172800,
+        review_count=1,
+        failure_count=0,
+    )
+
+    card_repository.update_schedule(updated_schedule)
+
+    found_schedule = card_repository.get_schedule(created_card.id)
+
+    assert found_schedule is not None
+    assert found_schedule == updated_schedule
 
     connection.close()

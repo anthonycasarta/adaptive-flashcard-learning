@@ -163,3 +163,27 @@ class CardRepository:
             review_count=row[4],
             failure_count=row[5],
         )
+
+    def update_schedule(self, schedule: CardSchedule) -> None:
+        self._connection.execute(
+            """
+            UPDATE card_schedule
+            SET
+                state = ?,
+                due_at = ?,
+                interval_seconds = ?,
+                review_count = ?,
+                failure_count = ?
+            WHERE card_id = ?
+            """,
+            (
+                schedule.state.value,
+                schedule.due_at.isoformat(),
+                schedule.interval_seconds,
+                schedule.review_count,
+                schedule.failure_count,
+                schedule.card_id,
+            ),
+        )
+
+        self._connection.commit()
