@@ -338,3 +338,46 @@ def test_update_card_without_id_raises_value_error(tmp_path):
         repository.update(card)
 
     connection.close()
+
+
+def test_delete_card(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    created_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=created_deck.id,
+            front="What is a stack?",
+            back="A last-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_card.id is not None
+
+    card_repository.delete(created_card.id)
+
+    found_card = card_repository.get_by_id(created_card.id)
+
+    assert found_card is None
+
+    connection.close()

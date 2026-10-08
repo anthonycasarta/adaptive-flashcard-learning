@@ -99,3 +99,14 @@ class CardRepository:
         )
 
         self._connection.commit()
+
+    def delete(self, card_id: int) -> None:
+        self._connection.execute(
+            """
+            DELETE FROM cards
+            WHERE id = ?
+            """,
+            (card_id,),
+        )
+
+        self._connection.commit()
