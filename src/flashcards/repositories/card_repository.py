@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 
-from flashcards.domain.models import Card, CardSchedule
+from flashcards.domain.models import Card, CardSchedule, CardState
 
 
 class CardRepository:
@@ -135,3 +135,31 @@ class CardRepository:
         )
 
         self._connection.commit()
+
+    def get_schedule(self, card_id: int) -> CardSchedule | None:
+        row = self._connection.execute(
+            """
+            SELECT
+                card_id,
+                state,
+                due_at,
+                interval_seconds,
+                review_count,
+                failure_count
+            FROM card_schedule
+            WHERE card_id = ?
+            """,
+            (card_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return CardSchedule(
+            card_id=row[0],
+            state=CardState(row[1]),
+            due_at=datetime.fromisoformat(row[2]),
+            interval_seconds=row[3],
+            review_count=row[4],
+            failure_count=row[5],
+        )

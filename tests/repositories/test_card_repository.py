@@ -452,3 +452,97 @@ def test_create_schedule(tmp_path):
     assert row[5] == 0
 
     connection.close()
+
+
+def test_get_schedule_returns_schedule(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    created_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=created_deck.id,
+            front="What is a stack?",
+            back="A last-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_card.id is not None
+
+    schedule = CardSchedule(
+        card_id=created_card.id,
+        state=CardState.LEARNING,
+        due_at=now,
+        interval_seconds=0,
+        review_count=0,
+        failure_count=0,
+    )
+
+    card_repository.create_schedule(schedule)
+
+    found_schedule = card_repository.get_schedule(created_card.id)
+
+    assert found_schedule is not None
+    assert found_schedule == schedule
+
+    connection.close()
+
+
+def test_get_schedule_returns_none_when_schedule_does_not_exist(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    created_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=created_deck.id,
+            front="What is a stack?",
+            back="A last-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_card.id is not None
+
+    found_schedule = card_repository.get_schedule(created_card.id)
+
+    assert found_schedule is None
+
+    connection.close()
