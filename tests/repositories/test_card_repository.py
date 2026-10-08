@@ -9,7 +9,7 @@ from flashcards.repositories.card_repository import CardRepository
 from flashcards.repositories.deck_repository import DeckRepository
 
 
-def test_create_card(tmp_path):
+def test_create_card_helper(tmp_path):
     database_path = tmp_path / "test.db"
     connection = create_connection(database_path)
     initialize_database(connection)
@@ -39,7 +39,7 @@ def test_create_card(tmp_path):
         updated_at=now,
     )
 
-    created_card = card_repository.create(card)
+    created_card = card_repository._create_card(card)
 
     assert created_card.id is not None
     assert created_card.deck_id == created_deck.id
@@ -65,10 +65,11 @@ def test_create_card(tmp_path):
     assert row[4] == now.isoformat()
     assert row[5] == now.isoformat()
 
+    connection.rollback()
     connection.close()
 
 
-def test_create_card_with_nonexistent_deck_raises_integrity_error(tmp_path):
+def test_create_card_helper_with_nonexistent_deck_raises_integrity_error(tmp_path):
     database_path = tmp_path / "test.db"
     connection = create_connection(database_path)
     initialize_database(connection)
@@ -87,8 +88,9 @@ def test_create_card_with_nonexistent_deck_raises_integrity_error(tmp_path):
     )
 
     with pytest.raises(sqlite3.IntegrityError):
-        repository.create(card)
+        repository._create_card(card)
 
+    connection.rollback()
     connection.close()
 
 
@@ -113,7 +115,7 @@ def test_get_by_id_returns_card(tmp_path):
 
     assert created_deck.id is not None
 
-    created_card = card_repository.create(
+    created_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=created_deck.id,
@@ -179,7 +181,7 @@ def test_get_by_deck_id_returns_only_cards_for_deck(tmp_path):
     assert first_deck.id is not None
     assert second_deck.id is not None
 
-    first_card = card_repository.create(
+    first_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=first_deck.id,
@@ -190,7 +192,7 @@ def test_get_by_deck_id_returns_only_cards_for_deck(tmp_path):
         )
     )
 
-    second_card = card_repository.create(
+    second_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=first_deck.id,
@@ -201,7 +203,7 @@ def test_get_by_deck_id_returns_only_cards_for_deck(tmp_path):
         )
     )
 
-    card_repository.create(
+    card_repository._create_card(
         Card(
             id=None,
             deck_id=second_deck.id,
@@ -278,7 +280,7 @@ def test_update_card(tmp_path):
     assert first_deck.id is not None
     assert second_deck.id is not None
 
-    created_card = card_repository.create(
+    created_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=first_deck.id,
@@ -361,7 +363,7 @@ def test_delete_card(tmp_path):
 
     assert created_deck.id is not None
 
-    created_card = card_repository.create(
+    created_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=created_deck.id,
@@ -383,7 +385,7 @@ def test_delete_card(tmp_path):
     connection.close()
 
 
-def test_create_schedule(tmp_path):
+def test_create_schedule_helper(tmp_path):
     database_path = tmp_path / "test.db"
     connection = create_connection(database_path)
     initialize_database(connection)
@@ -404,7 +406,7 @@ def test_create_schedule(tmp_path):
 
     assert created_deck.id is not None
 
-    created_card = card_repository.create(
+    created_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=created_deck.id,
@@ -426,7 +428,7 @@ def test_create_schedule(tmp_path):
         failure_count=0,
     )
 
-    card_repository.create_schedule(schedule)
+    card_repository._create_schedule(schedule)
 
     row = connection.execute(
         """
@@ -451,6 +453,7 @@ def test_create_schedule(tmp_path):
     assert row[4] == 0
     assert row[5] == 0
 
+    connection.rollback()
     connection.close()
 
 
@@ -475,7 +478,7 @@ def test_get_schedule_returns_schedule(tmp_path):
 
     assert created_deck.id is not None
 
-    created_card = card_repository.create(
+    created_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=created_deck.id,
@@ -497,7 +500,7 @@ def test_get_schedule_returns_schedule(tmp_path):
         failure_count=0,
     )
 
-    card_repository.create_schedule(schedule)
+    card_repository._create_schedule(schedule)
 
     found_schedule = card_repository.get_schedule(created_card.id)
 
@@ -528,7 +531,7 @@ def test_get_schedule_returns_none_when_schedule_does_not_exist(tmp_path):
 
     assert created_deck.id is not None
 
-    created_card = card_repository.create(
+    created_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=created_deck.id,
@@ -569,7 +572,7 @@ def test_update_schedule(tmp_path):
 
     assert created_deck.id is not None
 
-    created_card = card_repository.create(
+    created_card = card_repository._create_card(
         Card(
             id=None,
             deck_id=created_deck.id,
@@ -591,7 +594,7 @@ def test_update_schedule(tmp_path):
         failure_count=0,
     )
 
-    card_repository.create_schedule(initial_schedule)
+    card_repository._create_schedule(initial_schedule)
 
     updated_schedule = CardSchedule(
         card_id=created_card.id,

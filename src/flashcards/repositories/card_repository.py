@@ -8,7 +8,7 @@ class CardRepository:
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
 
-    def create(self, card: Card) -> Card:
+    def _create_card(self, card: Card) -> Card:
         cursor = self._connection.execute(
             """
             INSERT INTO cards (deck_id, front, back, created_at, updated_at)
@@ -22,8 +22,6 @@ class CardRepository:
                 card.updated_at.isoformat(),
             ),
         )
-
-        self._connection.commit()
 
         return Card(
             id=cursor.lastrowid,
@@ -111,7 +109,7 @@ class CardRepository:
 
         self._connection.commit()
 
-    def create_schedule(self, schedule: CardSchedule) -> None:
+    def _create_schedule(self, schedule: CardSchedule) -> None:
         self._connection.execute(
             """
             INSERT INTO card_schedule (
@@ -133,8 +131,6 @@ class CardRepository:
                 schedule.failure_count,
             ),
         )
-
-        self._connection.commit()
 
     def get_schedule(self, card_id: int) -> CardSchedule | None:
         row = self._connection.execute(
@@ -198,27 +194,13 @@ class CardRepository:
         failure_count: int,
     ) -> tuple[Card, CardSchedule]:
         try:
-            cursor = self._connection.execute(
-                """
-                INSERT INTO cards (deck_id, front, back, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (
-                    card.deck_id,
-                    card.front,
-                    card.back,
-                    card.created_at.isoformat(),
-                    card.updated_at.isoformat(),
-                ),
-            )
+            created_card = self._create_card(card)
 
-            card_id = cursor.lastrowid
-
-            if card_id is None:
+            if created_card.id is None:
                 raise RuntimeError("Failed to generate card ID")
 
             schedule = CardSchedule(
-                card_id=card_id,
+                card_id=created_card.id,
                 state=state,
                 due_at=due_at,
                 interval_seconds=interval_seconds,
@@ -226,41 +208,12 @@ class CardRepository:
                 failure_count=failure_count,
             )
 
-            self._connection.execute(
-                """
-                INSERT INTO card_schedule (
-                    card_id,
-                    state,
-                    due_at,
-                    interval_seconds,
-                    review_count,
-                    failure_count
-                )
-                VALUES (?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    schedule.card_id,
-                    schedule.state.value,
-                    schedule.due_at.isoformat(),
-                    schedule.interval_seconds,
-                    schedule.review_count,
-                    schedule.failure_count,
-                ),
-            )
+            self._create_schedule(schedule)
 
             self._connection.commit()
 
         except Exception:
             self._connection.rollback()
             raise
-
-        created_card = Card(
-            id=card_id,
-            deck_id=card.deck_id,
-            front=card.front,
-            back=card.back,
-            created_at=card.created_at,
-            updated_at=card.updated_at,
-        )
 
         return created_card, schedule
