@@ -87,3 +87,14 @@ class DeckRepository:
         )
 
         self._connection.commit()
+
+    def delete(self, deck_id: int) -> None:
+        self._connection.execute(
+            """
+            DELETE FROM decks
+            WHERE id = ?
+            """,
+            (deck_id,),
+        )
+
+        self._connection.commit()

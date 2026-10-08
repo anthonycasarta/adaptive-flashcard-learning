@@ -232,3 +232,32 @@ def test_update_deck_without_id_raises_value_error(tmp_path):
         repository.update(deck)
 
     connection.close()
+
+
+def test_delete_deck(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = DeckRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    repository.delete(created_deck.id)
+
+    found_deck = repository.get_by_id(created_deck.id)
+
+    assert found_deck is None
+
+    connection.close()
