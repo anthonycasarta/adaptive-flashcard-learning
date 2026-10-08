@@ -76,3 +76,45 @@ def test_create_decks_generates_unique_ids(tmp_path):
     assert created_first.id != created_second.id
 
     connection.close()
+
+
+def test_get_by_id_returns_deck(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = DeckRepository(connection)
+
+    now = datetime.now(UTC)
+    deck = Deck(
+        id=None,
+        name="Computer Science",
+        created_at=now,
+        updated_at=now,
+    )
+
+    created_deck = repository.create(deck)
+
+    found_deck = repository.get_by_id(created_deck.id)
+
+    assert found_deck is not None
+    assert found_deck.id == created_deck.id
+    assert found_deck.name == "Computer Science"
+    assert found_deck.created_at == now
+    assert found_deck.updated_at == now
+
+    connection.close()
+
+
+def test_get_by_id_returns_none_when_deck_does_not_exist(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = DeckRepository(connection)
+
+    found_deck = repository.get_by_id(999)
+
+    assert found_deck is None
+
+    connection.close()
