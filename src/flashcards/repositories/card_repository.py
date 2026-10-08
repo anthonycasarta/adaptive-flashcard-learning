@@ -187,3 +187,80 @@ class CardRepository:
         )
 
         self._connection.commit()
+
+    def create_with_schedule(
+        self,
+        card: Card,
+        state: CardState,
+        due_at: datetime,
+        interval_seconds: int,
+        review_count: int,
+        failure_count: int,
+    ) -> tuple[Card, CardSchedule]:
+        try:
+            cursor = self._connection.execute(
+                """
+                INSERT INTO cards (deck_id, front, back, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    card.deck_id,
+                    card.front,
+                    card.back,
+                    card.created_at.isoformat(),
+                    card.updated_at.isoformat(),
+                ),
+            )
+
+            card_id = cursor.lastrowid
+
+            if card_id is None:
+                raise RuntimeError("Failed to generate card ID")
+
+            schedule = CardSchedule(
+                card_id=card_id,
+                state=state,
+                due_at=due_at,
+                interval_seconds=interval_seconds,
+                review_count=review_count,
+                failure_count=failure_count,
+            )
+
+            self._connection.execute(
+                """
+                INSERT INTO card_schedule (
+                    card_id,
+                    state,
+                    due_at,
+                    interval_seconds,
+                    review_count,
+                    failure_count
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    schedule.card_id,
+                    schedule.state.value,
+                    schedule.due_at.isoformat(),
+                    schedule.interval_seconds,
+                    schedule.review_count,
+                    schedule.failure_count,
+                ),
+            )
+
+            self._connection.commit()
+
+        except Exception:
+            self._connection.rollback()
+            raise
+
+        created_card = Card(
+            id=card_id,
+            deck_id=card.deck_id,
+            front=card.front,
+            back=card.back,
+            created_at=card.created_at,
+            updated_at=card.updated_at,
+        )
+
+        return created_card, schedule

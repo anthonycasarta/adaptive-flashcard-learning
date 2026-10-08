@@ -610,3 +610,119 @@ def test_update_schedule(tmp_path):
     assert found_schedule == updated_schedule
 
     connection.close()
+
+
+def test_create_with_schedule(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    card = Card(
+        id=None,
+        deck_id=created_deck.id,
+        front="What is a stack?",
+        back="A last-in, first-out data structure.",
+        created_at=now,
+        updated_at=now,
+    )
+
+    created_card, created_schedule = card_repository.create_with_schedule(
+        card=card,
+        state=CardState.LEARNING,
+        due_at=now,
+        interval_seconds=0,
+        review_count=0,
+        failure_count=0,
+    )
+
+    assert created_card.id is not None
+    assert created_schedule.card_id == created_card.id
+
+    found_card = card_repository.get_by_id(created_card.id)
+    found_schedule = card_repository.get_schedule(created_card.id)
+
+    assert found_card == created_card
+    assert found_schedule == created_schedule
+
+    connection.close()
+
+
+def test_create_with_schedule_rolls_back_when_schedule_insert_fails(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    connection.execute(
+        """
+        CREATE TRIGGER fail_schedule_insert
+        BEFORE INSERT ON card_schedule
+        BEGIN
+            SELECT RAISE(ABORT, 'schedule insert failed');
+        END;
+        """
+    )
+    connection.commit()
+
+    card = Card(
+        id=None,
+        deck_id=created_deck.id,
+        front="What is a stack?",
+        back="A last-in, first-out data structure.",
+        created_at=now,
+        updated_at=now,
+    )
+
+    with pytest.raises(sqlite3.IntegrityError, match="schedule insert failed"):
+        card_repository.create_with_schedule(
+            card=card,
+            state=CardState.LEARNING,
+            due_at=now,
+            interval_seconds=0,
+            review_count=0,
+            failure_count=0,
+        )
+
+    rows = connection.execute(
+        """
+        SELECT id
+        FROM cards
+        WHERE deck_id = ?
+        """,
+        (created_deck.id,),
+    ).fetchall()
+
+    assert rows == []
+
+    connection.close()
