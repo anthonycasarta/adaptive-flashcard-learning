@@ -245,3 +245,96 @@ def test_get_by_deck_id_returns_empty_list_when_deck_has_no_cards(tmp_path):
     assert cards == []
 
     connection.close()
+
+
+def test_update_card(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    created_at = datetime.now(UTC)
+
+    first_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=created_at,
+            updated_at=created_at,
+        )
+    )
+
+    second_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Algorithms",
+            created_at=created_at,
+            updated_at=created_at,
+        )
+    )
+
+    assert first_deck.id is not None
+    assert second_deck.id is not None
+
+    created_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=first_deck.id,
+            front="What is Big O?",
+            back="A way to describe algorithm complexity.",
+            created_at=created_at,
+            updated_at=created_at,
+        )
+    )
+
+    assert created_card.id is not None
+
+    updated_at = datetime.now(UTC)
+
+    updated_card = Card(
+        id=created_card.id,
+        deck_id=second_deck.id,
+        front="What is Big-O notation?",
+        back="A notation used to describe asymptotic complexity.",
+        created_at=created_card.created_at,
+        updated_at=updated_at,
+    )
+
+    card_repository.update(updated_card)
+
+    found_card = card_repository.get_by_id(created_card.id)
+
+    assert found_card is not None
+    assert found_card.deck_id == second_deck.id
+    assert found_card.front == "What is Big-O notation?"
+    assert found_card.back == "A notation used to describe asymptotic complexity."
+    assert found_card.created_at == created_at
+    assert found_card.updated_at == updated_at
+
+    connection.close()
+
+
+def test_update_card_without_id_raises_value_error(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    card = Card(
+        id=None,
+        deck_id=1,
+        front="Question",
+        back="Answer",
+        created_at=now,
+        updated_at=now,
+    )
+
+    with pytest.raises(ValueError, match="Cannot update a card without an ID"):
+        repository.update(card)
+
+    connection.close()

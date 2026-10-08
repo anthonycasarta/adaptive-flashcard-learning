@@ -78,3 +78,24 @@ class CardRepository:
             )
             for row in rows
         ]
+
+    def update(self, card: Card) -> None:
+        if card.id is None:
+            raise ValueError("Cannot update a card without an ID")
+
+        self._connection.execute(
+            """
+            UPDATE cards
+            SET deck_id = ?, front = ?, back = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                card.deck_id,
+                card.front,
+                card.back,
+                card.updated_at.isoformat(),
+                card.id,
+            ),
+        )
+
+        self._connection.commit()
