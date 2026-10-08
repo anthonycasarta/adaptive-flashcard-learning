@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import pytest
 
 from flashcards.database.connection import create_connection, initialize_database
-from flashcards.domain.models import Card, Deck
+from flashcards.domain.models import Card, CardSchedule, CardState, Deck
 from flashcards.repositories.card_repository import CardRepository
 from flashcards.repositories.deck_repository import DeckRepository
 
@@ -379,5 +379,76 @@ def test_delete_card(tmp_path):
     found_card = card_repository.get_by_id(created_card.id)
 
     assert found_card is None
+
+    connection.close()
+
+
+def test_create_schedule(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    created_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=created_deck.id,
+            front="What is a stack?",
+            back="A last-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_card.id is not None
+
+    schedule = CardSchedule(
+        card_id=created_card.id,
+        state=CardState.LEARNING,
+        due_at=now,
+        interval_seconds=0,
+        review_count=0,
+        failure_count=0,
+    )
+
+    card_repository.create_schedule(schedule)
+
+    row = connection.execute(
+        """
+        SELECT
+            card_id,
+            state,
+            due_at,
+            interval_seconds,
+            review_count,
+            failure_count
+        FROM card_schedule
+        WHERE card_id = ?
+        """,
+        (created_card.id,),
+    ).fetchone()
+
+    assert row is not None
+    assert row[0] == created_card.id
+    assert row[1] == "learning"
+    assert row[2] == now.isoformat()
+    assert row[3] == 0
+    assert row[4] == 0
+    assert row[5] == 0
 
     connection.close()

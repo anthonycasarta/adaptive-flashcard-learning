@@ -1,7 +1,7 @@
 import sqlite3
 from datetime import datetime
 
-from flashcards.domain.models import Card
+from flashcards.domain.models import Card, CardSchedule
 
 
 class CardRepository:
@@ -107,6 +107,31 @@ class CardRepository:
             WHERE id = ?
             """,
             (card_id,),
+        )
+
+        self._connection.commit()
+
+    def create_schedule(self, schedule: CardSchedule) -> None:
+        self._connection.execute(
+            """
+            INSERT INTO card_schedule (
+                card_id,
+                state,
+                due_at,
+                interval_seconds,
+                review_count,
+                failure_count
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                schedule.card_id,
+                schedule.state.value,
+                schedule.due_at.isoformat(),
+                schedule.interval_seconds,
+                schedule.review_count,
+                schedule.failure_count,
+            ),
         )
 
         self._connection.commit()
