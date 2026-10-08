@@ -146,3 +146,102 @@ def test_get_by_id_returns_none_when_card_does_not_exist(tmp_path):
     assert found_card is None
 
     connection.close()
+
+
+def test_get_by_deck_id_returns_only_cards_for_deck(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    first_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    second_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Mathematics",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert first_deck.id is not None
+    assert second_deck.id is not None
+
+    first_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=first_deck.id,
+            front="What is a stack?",
+            back="A last-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    second_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=first_deck.id,
+            front="What is a queue?",
+            back="A first-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    card_repository.create(
+        Card(
+            id=None,
+            deck_id=second_deck.id,
+            front="What is a derivative?",
+            back="The instantaneous rate of change.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    cards = card_repository.get_by_deck_id(first_deck.id)
+
+    assert cards == [first_card, second_card]
+
+    connection.close()
+
+
+def test_get_by_deck_id_returns_empty_list_when_deck_has_no_cards(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    cards = card_repository.get_by_deck_id(created_deck.id)
+
+    assert cards == []
+
+    connection.close()

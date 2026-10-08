@@ -55,3 +55,26 @@ class CardRepository:
             created_at=datetime.fromisoformat(row[4]),
             updated_at=datetime.fromisoformat(row[5]),
         )
+
+    def get_by_deck_id(self, deck_id: int) -> list[Card]:
+        rows = self._connection.execute(
+            """
+            SELECT id, deck_id, front, back, created_at, updated_at
+            FROM cards
+            WHERE deck_id = ?
+            ORDER BY id
+            """,
+            (deck_id,),
+        ).fetchall()
+
+        return [
+            Card(
+                id=row[0],
+                deck_id=row[1],
+                front=row[2],
+                back=row[3],
+                created_at=datetime.fromisoformat(row[4]),
+                updated_at=datetime.fromisoformat(row[5]),
+            )
+            for row in rows
+        ]
