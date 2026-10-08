@@ -90,3 +90,59 @@ def test_create_card_with_nonexistent_deck_raises_integrity_error(tmp_path):
         repository.create(card)
 
     connection.close()
+
+
+def test_get_by_id_returns_card(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    deck_repository = DeckRepository(connection)
+    card_repository = CardRepository(connection)
+
+    now = datetime.now(UTC)
+
+    created_deck = deck_repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_deck.id is not None
+
+    created_card = card_repository.create(
+        Card(
+            id=None,
+            deck_id=created_deck.id,
+            front="What is a stack?",
+            back="A last-in, first-out data structure.",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    assert created_card.id is not None
+
+    found_card = card_repository.get_by_id(created_card.id)
+
+    assert found_card is not None
+    assert found_card == created_card
+
+    connection.close()
+
+
+def test_get_by_id_returns_none_when_card_does_not_exist(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = CardRepository(connection)
+
+    found_card = repository.get_by_id(999)
+
+    assert found_card is None
+
+    connection.close()

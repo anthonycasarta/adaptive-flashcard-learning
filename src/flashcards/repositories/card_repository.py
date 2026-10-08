@@ -1,4 +1,5 @@
 import sqlite3
+from datetime import datetime
 
 from flashcards.domain.models import Card
 
@@ -31,4 +32,26 @@ class CardRepository:
             back=card.back,
             created_at=card.created_at,
             updated_at=card.updated_at,
+        )
+
+    def get_by_id(self, card_id: int) -> Card | None:
+        row = self._connection.execute(
+            """
+            SELECT id, deck_id, front, back, created_at, updated_at
+            FROM cards
+            WHERE id = ?
+            """,
+            (card_id,),
+        ).fetchone()
+
+        if row is None:
+            return None
+
+        return Card(
+            id=row[0],
+            deck_id=row[1],
+            front=row[2],
+            back=row[3],
+            created_at=datetime.fromisoformat(row[4]),
+            updated_at=datetime.fromisoformat(row[5]),
         )
