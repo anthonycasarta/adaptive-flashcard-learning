@@ -118,3 +118,51 @@ def test_get_by_id_returns_none_when_deck_does_not_exist(tmp_path):
     assert found_deck is None
 
     connection.close()
+
+
+def test_get_all_returns_all_decks(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = DeckRepository(connection)
+
+    now = datetime.now(UTC)
+
+    first_deck = repository.create(
+        Deck(
+            id=None,
+            name="Computer Science",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    second_deck = repository.create(
+        Deck(
+            id=None,
+            name="Mathematics",
+            created_at=now,
+            updated_at=now,
+        )
+    )
+
+    decks = repository.get_all()
+
+    assert decks == [first_deck, second_deck]
+
+    connection.close()
+
+
+def test_get_all_returns_empty_list_when_no_decks_exist(tmp_path):
+    database_path = tmp_path / "test.db"
+    connection = create_connection(database_path)
+    initialize_database(connection)
+
+    repository = DeckRepository(connection)
+
+    decks = repository.get_all()
+
+    assert decks == []
+
+    connection.close()

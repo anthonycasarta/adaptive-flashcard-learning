@@ -49,3 +49,22 @@ class DeckRepository:
             created_at=datetime.fromisoformat(row[2]),
             updated_at=datetime.fromisoformat(row[3]),
         )
+
+    def get_all(self) -> list[Deck]:
+        rows = self._connection.execute(
+            """
+            SELECT id, name, created_at, updated_at
+            FROM decks
+            ORDER BY id
+            """
+        ).fetchall()
+
+        return [
+            Deck(
+                id=row[0],
+                name=row[1],
+                created_at=datetime.fromisoformat(row[2]),
+                updated_at=datetime.fromisoformat(row[3]),
+            )
+            for row in rows
+        ]
